@@ -12,7 +12,6 @@
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^5.1.1",
-    "body-parser": "^2.2.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
@@ -23,7 +22,8 @@
     "mongodb": "^6.16.0",
     "mongoose": "^8.13.2",
     "mongoose-sequence": "^6.0.1",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.1"

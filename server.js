@@ -1,5 +1,4 @@
 require("dotenv").config();
-require("express-async-errors");
 const express = require("express"); // express is a node framework that allows us to create web server envioraments
 const app = express();
 const path = require("path"); // path module provides a way of working with directories and file paths
@@ -10,7 +9,8 @@ const cors = require("cors");
 const corsOptions = require("./config/corsOptions");
 const connectDB = require("./config/connectDB");
 const mongoose = require("mongoose");
-const PORT = process.env.PORT || 3500;
+const PORT = process.env.PORT || 3500; // if for some reason process.env.PORT is not available, run on 3500
+
 console.log(process.env.NODE_ENV);
 
 // connect to DB
@@ -41,8 +41,8 @@ app.use("/api/v1/auth", require("./routes/authRoutes"));
 app.use("/api/v1/users", require("./routes/userRoutes"));
 app.use("/api/v1/notes", require("./routes/noteRoutes"));
 
-// single threaded process, if route 1 (above) does not match, everything else will be handled by this route
-app.all("*", (req, res) => {
+// Catch-all middleware for 404 errors
+app.use((req, res, next) => {
   res.status(404);
   if (req.accepts("html")) {
     res.sendFile(path.join(__dirname, "views", "404.html"));
@@ -53,10 +53,10 @@ app.all("*", (req, res) => {
   }
 });
 
+// Error handler middleware
 app.use(errorHandler);
 
 mongoose.connection.once("open", () => {
-  console.log("Connected to MongoDB");
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 });
 
