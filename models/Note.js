@@ -7,12 +7,13 @@ const noteSchema = new mongoose.Schema(
     dueDate: {
       type: Date,
       default: Date.now(),
+      required: true,
     },
     title: {
       type: String,
       required: [true, "Please add a title"],
-      unique: true,
       maxlength: [40, "Title cannot be more than 40 characters"],
+      unique: true,
     },
     description: {
       type: String,

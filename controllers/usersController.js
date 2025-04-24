@@ -1,7 +1,9 @@
+const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
+
+// imported models
 const User = require("../models/User");
 const Note = require("../models/Note");
-const bcrypt = require("bcrypt");
-const mongoose = require("mongoose");
 
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
@@ -15,13 +17,13 @@ const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password").lean();
     if (!users || users.length === 0) {
-      return res.status(404).json({ message: "No users found" });
+      return res.status(404).json({ message: "No users found!" });
     }
     return res.status(200).json(users);
   } catch (error) {
-    console.error("Error fetching users:", error);
+    console.error("Error fetching users!", error);
     return res.status(500).json({
-      message: "An error occurred while fetching users",
+      message: "An error occurred while fetching users!",
       error: error.message,
     });
   }
@@ -36,13 +38,13 @@ const getUserById = async (req, res) => {
   try {
     const user = await User.findById(id).select("-password").lean();
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "User not found!" });
     }
     return res.status(200).json(user);
   } catch (error) {
-    console.error("Error fetching user:", error);
+    console.error("Error fetching user!", error);
     return res.status(500).json({
-      message: "An error occurred while fetching users",
+      message: "An error occurred while fetching user!",
       error: error.message,
     });
   }
@@ -76,10 +78,14 @@ const createNewUser = async (req, res) => {
   }
 
   try {
-    const duplicate = await User.exists({ username });
+    const duplicate = await User.findOne({
+      $or: [{ username }, { email }],
+    }).lean();
 
     if (duplicate) {
-      return res.status(409).json({ message: "Duplicate username" });
+      const duplicateField =
+        duplicate.username === username ? "username" : "email";
+      return res.status(409).json({ message: `Duplicate ${duplicateField}` });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -173,6 +179,11 @@ const updateUser = async (req, res) => {
       updateFields.password = await bcrypt.hash(password, 10);
     }
 
+    // No changes? Return early
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(200).json({ message: "No changes detected" });
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       id,
       { $set: updateFields },
@@ -187,7 +198,7 @@ const updateUser = async (req, res) => {
   } catch (error) {
     console.error("Error updating user:", error);
     return res.status(500).json({
-      message: "An error occurred while updating user",
+      message: "An error occurred while updating user!",
       error: error.message,
     });
   }
@@ -237,10 +248,10 @@ const deleteUser = async (req, res) => {
       message: `User ${deletedUser.username} and their notes deleted successfully`,
     });
   } catch (error) {
-    console.error("Error deleting user:", error);
+    console.error("Error deleting user!", error);
     await session.abortTransaction();
     res.status(500).json({
-      message: "An error occurred while deleting user",
+      message: "An error occurred while deleting user!",
       error: error.message,
     });
   } finally {

@@ -1,3 +1,4 @@
+// imported models
 const Note = require("../models/Note");
 const User = require("../models/User");
 
@@ -14,13 +15,17 @@ const getAllNotes = async (req, res) => {
       })
       .lean();
 
-    if (!notes?.length) {
-      return res.status(404).json({ message: "No notes found" });
+    if (!notes || notes.length === 0) {
+      return res.status(404).json({ message: "No notes found!" });
     }
 
-    res.status(200).json(notes);
+    return res.status(200).json(notes);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error fetching notes:", error);
+    return res.status(500).json({
+      message: "An error occurred while fetching notes",
+      error: error.message,
+    });
   }
 };
 
@@ -39,13 +44,17 @@ const getNoteById = async (req, res) => {
       })
       .lean();
 
-    if (!note?.length) {
-      return res.status(404).json({ message: "No note found" });
+    if (!note) {
+      return res.status(404).json({ message: "No note found!" });
     }
 
-    res.status(200).json(note);
+    return res.status(200).json(note);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error fetching note!", error);
+    return res.status(500).json({
+      message: "An error occurred while fetching note!",
+      error: error.message,
+    });
   }
 };
 
@@ -53,28 +62,42 @@ const getNoteById = async (req, res) => {
 // @route POST /notes
 // @access Private
 const createNewNote = async (req, res) => {
-  const { username, title, description } = req.body;
+  const { dueDate, title, description, priority, userId } = req.body;
 
-  if (!username || !title || !description) {
-    return res.status(400).json({ message: "All fields are required" });
+  if (!dueDate || !userId || !title || !description) {
+    return res
+      .status(400)
+      .json({ message: "All fields except 'priority' are required!" });
   }
 
   try {
-    const duplicate = await Note.findOne({ title }).lean().exec();
+    const duplicate = await Note.findOne({ title, userId }).lean();
 
     if (duplicate) {
-      return res.status(409).json({ message: "Duplicate note title" });
+      return res.status(409).json({ message: "Duplicate note title!" });
     }
 
-    const note = await Note.create({ username, title, description });
+    const noteObj = {
+      dueDate,
+      userId,
+      title,
+      description,
+      priority: priority || undefined,
+    };
 
-    if (note) {
-      res.status(201).json({ message: "New note created" });
+    const newNote = await Note.create(noteObj);
+
+    if (newNote) {
+      return res.status(201).json({ message: "New note created" });
     } else {
-      res.status(400).json({ message: "Invalid note data received" });
+      return res.status(400).json({ message: "Failed to create new note!" });
     }
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error creating note!", error);
+    return res.status(500).json({
+      message: "An error occurred while creating note",
+      error: error.message,
+    });
   }
 };
 
@@ -83,33 +106,50 @@ const createNewNote = async (req, res) => {
 // @access Private
 const updateNote = async (req, res) => {
   const { id } = req.params;
-  
-  const { username, title, description, completed } = req.body;
 
-  if (!id || !username || !title || !description || typeof completed !== "boolean") {
-    return res.status(400).json({ message: "All fields are required" });
+  const { dueDate, title, description, priority, completed } = req.body;
+
+  if (
+    !id ||
+    !dueDate ||
+    !title ||
+    !description ||
+    typeof priority !== "boolean" ||
+    typeof completed !== "boolean"
+  ) {
+    return res.status(400).json({ message: "All fields are required!" });
   }
 
   try {
-    const [note, duplicateNote] = await Promise.all([
-      Note.findById(id).lean().exec(),
-      Note.findOne({ title, _id: { $ne: id } })
-        .lean()
-        .exec(),
-    ]);
+    const note = await Note.findById(id).lean();
 
-    if (!note || duplicateNote) {
-      return !note
-        ? res.status(404).json({ message: "Note not found" })
-        : res.status(409).json({ message: "Duplicate note title" });
+    if (!note) {
+      return res.status(404).json({ message: "Note not found!" });
     }
 
-    const updateFields = {
-      username,
+    const duplicate = await Note.findOne({
       title,
-      description,
-      completed,
-    };
+      userId: note.userId,
+      _id: { $ne: id },
+    }).lean();
+
+    if (duplicate) {
+      return res.status(409).json({ message: "Duplicate note title!" });
+    }
+
+    const updateFields = {};
+
+    if (dueDate !== note.dueDate) updateFields.dueDate = dueDate;
+    if (title !== note.title) updateFields.title = title;
+    if (description !== note.description)
+      updateFields.description = description;
+    if (priority !== note.priority) updateFields.priority = priority;
+    if (completed !== note.completed) updateFields.completed = completed;
+
+    // No changes? Return early
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(200).json({ message: "No changes detected" });
+    }
 
     const updatedNote = await Note.findByIdAndUpdate(
       id,
@@ -118,12 +158,16 @@ const updateNote = async (req, res) => {
     ).lean();
 
     if (!updatedNote) {
-      return res.status(400).json({ message: "Failed to update note" });
+      return res.status(400).json({ message: "Failed to update note!" });
     }
 
-    res.status(200).json({ message: `'${updatedNote.title}' updated` });
+    return res.status(200).json({ message: `'${updatedNote.title}' updated` });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error updating note!", error);
+    return res.status(500).json({
+      message: "An error occurred while updating note!",
+      error: error.message,
+    });
   }
 };
 
@@ -134,23 +178,27 @@ const deleteNote = async (req, res) => {
   const { id } = req.params;
 
   if (!id) {
-    return res.status(400).json({ message: "Note ID required" });
+    return res.status(400).json({ message: "Note ID is required!" });
   }
 
   try {
-    const note = await Note.findById(id).exec();
+    // Try deleting the note directly
+    const note = await Note.findByIdAndDelete(id);
 
     if (!note) {
-      return res.status(404).json({ message: "Note not found" });
+      return res.status(404).json({ message: "Note not found!" });
     }
 
-    const result = await note.deleteOne();
-
-    res.status(200).json({
-      message: `Note '${result.title}' with ID ${result._id} deleted`,
+    // Respond with deleted note details
+    return res.status(200).json({
+      message: `Note '${note.title}' with ID ${note._id} deleted successfully.`,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error deleting note:", error);
+    return res.status(500).json({
+      message: "An error occurred while deleting the note!",
+      error: error.message,
+    });
   }
 };
 

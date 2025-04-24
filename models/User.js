@@ -5,14 +5,11 @@ const userSchema = new mongoose.Schema(
     username: {
       type: String,
       required: true,
+      unique: true,
     },
     password: {
       type: String,
       required: true,
-      match: [
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
-        "Password must have at least 8 characters long containing at least 1 uppercase letter, lowercase letter, number and special character!",
-      ],
     },
     email: {
       type: String,
@@ -32,13 +29,16 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-    myNotes: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Notes",
-        index: true, // indexing references is a performance optimization, speed queries that frequently filter by this field
-      },
-    ],
+    myNotes: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Notes",
+          index: true, // indexing references is a performance optimization, speed queries that frequently filter by this field
+        },
+      ],
+      default: undefined,
+    },
   },
   {
     timestamps: true,
