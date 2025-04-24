@@ -39,7 +39,7 @@ const getNoteById = async (req, res) => {
     const note = await Note.findById(id)
       .populate({
         path: "userId",
-        select: "-password",
+        select: "username",
         model: User,
       })
       .lean();
@@ -161,7 +161,7 @@ const updateNote = async (req, res) => {
       return res.status(400).json({ message: "Failed to update note!" });
     }
 
-    return res.status(200).json({ message: `'${updatedNote.title}' updated` });
+    return res.status(200).json({ message: `${updatedNote.title} - updated` });
   } catch (error) {
     console.error("Error updating note!", error);
     return res.status(500).json({
@@ -191,7 +191,7 @@ const deleteNote = async (req, res) => {
 
     // Respond with deleted note details
     return res.status(200).json({
-      message: `Note '${note.title}' with ID ${note._id} deleted successfully.`,
+      message: `Note with ID ${id} deleted successfully.`,
     });
   } catch (error) {
     console.error("Error deleting note:", error);
