@@ -2,11 +2,6 @@ const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const { logEvents } = require("../middleware/logger");
 
-// This way we can generate a access and refresh token for the JWT authentication.
-// C:\Users\jpsm8\Documents\Coding\projects\MERN_fullStack\backend> node
-// > require('crypto').randomBytes(64).toString('hex')
-// '497a9d66e940cbf566444f4383a4fcbee08354b21d725235b4012a83a263092f3bf325a6c2b57791e4bc3596c89858af099fd7fcb'
-// save them in .env file as ACCESS_TOKEN_SECRET and REFRESH_TOKEN_SECRET
 const jwt = require("jsonwebtoken");
 
 // @desc Login
@@ -20,28 +15,30 @@ const login = async (req, res) => {
   }
 
   try {
-    const foundUser = await User.findOne({ username }).exec();
+    const user = await User.findOne({ username }).lean();
 
-    if (!foundUser || !foundUser.active) {
+    if (!user || !user.active) {
       logEvents(
         `Unauthorized login attempt for username: ${username}`,
         "authLog.log"
       );
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: "Unauthorized, no user found!" });
     }
 
-    const match = await bcrypt.compare(password, foundUser.password);
+    const match = await bcrypt.compare(password, user.password);
 
     if (!match) {
       logEvents(`Invalid password for username: ${username}`, "authLog.log");
-      return res.status(401).json({ message: "Unauthorized" });
+      return res
+        .status(401)
+        .json({ message: "Unauthorized, invalid password!" });
     }
 
     const accessToken = jwt.sign(
       {
         UserInfo: {
-          username: foundUser.username,
-          roles: foundUser.roles,
+          username: user.username,
+          roles: user.roles,
         },
       },
       process.env.ACCESS_TOKEN_SECRET,
@@ -49,7 +46,7 @@ const login = async (req, res) => {
     );
 
     const refreshToken = jwt.sign(
-      { username: foundUser.username },
+      { username: user.username },
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
@@ -59,7 +56,7 @@ const login = async (req, res) => {
       httpOnly: true, //accessible only by web server
       secure: true, //https
       sameSite: "None", //cross-site cookie
-      maxAge: 7 * 24 * 60 * 60 * 1000, //cookie expiry: set to match rT
+      maxAge: 7 * 24 * 60 * 60 * 1000, //cookie expiry: set to match refresh token (7 days in this case)
     });
 
     // Send accessToken containing username and roles
@@ -92,7 +89,7 @@ const refresh = (req, res) => {
 
         const foundUser = await User.findOne({
           username: decoded.username,
-        }).exec();
+        });
 
         if (!foundUser)
           return res.status(401).json({ message: "Unauthorized" });

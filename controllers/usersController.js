@@ -1,6 +1,12 @@
 const User = require("../models/User");
 const Note = require("../models/Note");
 const bcrypt = require("bcrypt");
+const mongoose = require("mongoose");
+
+const passwordRegex =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+const emailRegex =
+  /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 
 // @desc Get all users
 // @route GET /users
@@ -8,12 +14,16 @@ const bcrypt = require("bcrypt");
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password").lean();
-    if (!users?.length) {
+    if (!users || users.length === 0) {
       return res.status(404).json({ message: "No users found" });
     }
-    res.status(200).json(users);
+    return res.status(200).json(users);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error fetching users:", error);
+    return res.status(500).json({
+      message: "An error occurred while fetching users",
+      error: error.message,
+    });
   }
 };
 
@@ -24,13 +34,17 @@ const getUserById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const username = await User.findById(id).select("-password").lean();
-    if (!username) {
+    const user = await User.findById(id).select("-password").lean();
+    if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    res.status(200).json(username);
+    return res.status(200).json(user);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error fetching user:", error);
+    return res.status(500).json({
+      message: "An error occurred while fetching users",
+      error: error.message,
+    });
   }
 };
 
@@ -38,46 +52,60 @@ const getUserById = async (req, res) => {
 // @route POST /users
 // @access Private
 const createNewUser = async (req, res) => {
-  const { username, password, roles } = req.body;
+  const { username, password, email, roles } = req.body;
 
-    // validators have to be equal to validators from frontend
-    if (password.length < 5) {
-      // error 400 - bad request
-      return res.status(400).json({
-        message: "Please make your password at least 5 characters long",
-      });
-    }
-  
-  if (!username || !password) {
+  if (!username || !password || !email) {
     return res
       .status(400)
-      .json({ message: "Username and password are required" });
+      .json({ message: "Username, password and email are required!" });
+  }
+
+  if (!emailRegex.test(email)) {
+    // error 400 - bad request
+    return res.status(400).json({
+      message: "Please provide a valid email address!",
+    });
+  }
+
+  if (!passwordRegex.test(password)) {
+    // error 400 - bad request
+    return res.status(400).json({
+      message:
+        "Password must have at least 8 characters long containing at least 1 uppercase letter, lowercase letter, number and special character!",
+    });
   }
 
   try {
-    const duplicate = await User.findOne({ username }).lean().exec();
+    const duplicate = await User.exists({ username });
 
     if (duplicate) {
       return res.status(409).json({ message: "Duplicate username" });
     }
 
-    const hashedPwd = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const userObject = {
+    const userObj = {
       username,
-      password: hashedPwd,
+      password: hashedPassword,
+      email,
       ...(Array.isArray(roles) && roles.length && { roles }),
     };
 
-    const username = await User.create(userObject);
+    const newUser = await User.create(userObj);
 
-    if (username) {
-      res.status(201).json({ message: `New user ${username} created` });
+    if (newUser) {
+      return res
+        .status(201)
+        .json({ message: `New user ${newUser.username} created` });
     } else {
-      res.status(400).json({ message: "Invalid user data received" });
+      return res.status(400).json({ message: "Failed to create new user!" });
     }
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error creating user:", error);
+    return res.status(500).json({
+      message: "An error occurred while creating user",
+      error: error.message,
+    });
   }
 };
 
@@ -86,39 +114,60 @@ const createNewUser = async (req, res) => {
 // @access Private
 const updateUser = async (req, res) => {
   const { id } = req.params; // Extract the ID from the URL
-  const { username, roles, active, password } = req.body;
+  const { username, password, email, roles, active } = req.body;
 
   if (
     !id ||
     !username ||
+    !email ||
     !Array.isArray(roles) ||
     !roles.length ||
     typeof active !== "boolean"
   ) {
     return res
       .status(400)
-      .json({ message: "All fields except password are required" });
+      .json({ message: "All fields except password are required!" });
+  }
+
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      message: "Please provide a valid email address!",
+    });
+  }
+
+  if (password && !passwordRegex.test(password)) {
+    return res.status(400).json({
+      message:
+        "Password must have at least 8 characters long containing at least 1 uppercase letter, lowercase letter, number and special character!",
+    });
   }
 
   try {
-    const [username, duplicateUser] = await Promise.all([
-      User.findById(id).lean().exec(),
-      User.findOne({ username, _id: { $ne: id } })
-        .lean()
-        .exec(),
+    const [user, duplicateUser] = await Promise.all([
+      User.findById(id).lean(),
+      User.exists({ username, _id: { $ne: id } }),
     ]);
 
-    if (!username || duplicateUser) {
-      return !username
-        ? res.status(404).json({ message: "User not found" })
-        : res.status(409).json({ message: "Duplicate username" });
+    if (!user || duplicateUser) {
+      return !user
+        ? res.status(404).json({ message: "User not found!" })
+        : res.status(409).json({ message: "Duplicate username!" });
     }
 
-    const updateFields = {
-      username,
-      roles,
-      active,
-    };
+    const updateFields = {};
+
+    if (username !== user.username) updateFields.username = username;
+    if (email !== user.email) updateFields.email = email;
+
+    // Check if roles array is different and update only with new roles
+    if (
+      roles.length !== user.roles.length ||
+      roles.some((role) => !user.roles.includes(role))
+    ) {
+      updateFields.roles = roles;
+    }
+
+    if (active !== user.active) updateFields.active = active;
 
     if (password) {
       updateFields.password = await bcrypt.hash(password, 10);
@@ -131,12 +180,16 @@ const updateUser = async (req, res) => {
     ).lean();
 
     if (!updatedUser) {
-      return res.status(400).json({ message: "Failed to update user" });
+      return res.status(400).json({ message: "Failed to update user!" });
     }
 
-    res.status(200).json({ message: `${updatedUser.username} updated` });
+    return res.status(200).json({ message: `${updatedUser.username} updated` });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error updating user:", error);
+    return res.status(500).json({
+      message: "An error occurred while updating user",
+      error: error.message,
+    });
   }
 };
 
@@ -147,27 +200,52 @@ const deleteUser = async (req, res) => {
   const { id } = req.params; // Extract the ID from the URL
 
   if (!id) {
-    return res.status(400).json({ message: "User ID required" });
+    return res.status(400).json({ message: "User ID required!" });
   }
 
-  try {
-    const [note, username] = await Promise.all([
-      Note.findOne({ username: id }).lean().exec(),
-      User.findById(id).select("-password").lean().exec(),
-    ]);
+  // Start a session
+  const session = await mongoose.startSession();
 
-    if (!username || !note) {
-      return !username
-        ? res.status(404).json({ message: "User not found" })
-        : res.status(404).json({ message: "User has assigned notes" });
+  try {
+    // Start a transaction
+    session.startTransaction();
+
+    // Fetch the user to ensure it exists
+    const user = await User.findById(id);
+    if (!user) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: "User not found!" });
     }
 
-    const result = await User.deleteOne();
-    res.status(200).json({
-      message: `Username ${result.username} with ID ${result._id} deleted`,
+    // Delete the user and their associated notes in parallel
+    const [deletedUser, deletedNotes] = await Promise.all([
+      User.findByIdAndDelete(id, { session }).lean(),
+      Note.deleteMany({ userId: id }, { session }), // Delete all notes associated with the user
+    ]);
+
+    // If user deletion failed, abort the transaction
+    if (!deletedUser) {
+      await session.abortTransaction();
+      return res.status(400).json({ message: "Failed to delete user!" });
+    }
+
+    // Commit the transaction only if everything went well
+    await session.commitTransaction();
+
+    // Return the response with success
+    return res.status(200).json({
+      message: `User ${deletedUser.username} and their notes deleted successfully`,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error deleting user:", error);
+    await session.abortTransaction();
+    res.status(500).json({
+      message: "An error occurred while deleting user",
+      error: error.message,
+    });
+  } finally {
+    // Ensure the session is ended regardless of the result
+    session.endSession();
   }
 };
 
