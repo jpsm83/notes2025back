@@ -1,17 +1,17 @@
-require("dotenv").config()
-require("express-async-errors")
-const express = require("express") // express is a node framework that allows us to create web server envioraments
-const app = express()
-const path = require("path") // path module provides a way of working with directories and file paths
-const { logger, logEvents } = require("./middleware/logger")
-const errorHandler = require("./middleware/errorHandler")
-const cookieParser = require("cookie-parser") // cookie-parser is a middleware which parses cookies attached to the client request object
-const cors = require("cors")
-const corsOptions = require("./config/corsOptions")
-const connectDB = require("./config/connectDB")
-const mongoose = require("mongoose")
-const PORT = process.env.PORT || 3500
-console.log(process.env.NODE_ENV)
+require("dotenv").config();
+require("express-async-errors");
+const express = require("express"); // express is a node framework that allows us to create web server envioraments
+const app = express();
+const path = require("path"); // path module provides a way of working with directories and file paths
+const { logger, logEvents } = require("./middleware/logger");
+const errorHandler = require("./middleware/errorHandler");
+const cookieParser = require("cookie-parser"); // cookie-parser is a middleware which parses cookies attached to the client request object
+const cors = require("cors");
+const corsOptions = require("./config/corsOptions");
+const connectDB = require("./config/connectDB");
+const mongoose = require("mongoose");
+const PORT = process.env.PORT || 3500;
+console.log(process.env.NODE_ENV);
 
 // connect to DB
 connectDB();
@@ -68,23 +68,3 @@ mongoose.connection.on("error", (err) => {
     "mongoErrLog.log"
   );
 });
-
-
-
-
-
-
-
-
-const noteRouter = require('./routes/notes.routes')
-const authRouter = require('./routes/auth.routes')
-
-app.use('/api/notes', noteRouter)
-app.use('/api/auth', authRouter)
-
-//  Catch 404 and respond with error message
-app.use((req, res, next) => {
-  return res.status(404).json({ message: "Not found"})
-})
-
-module.exports = app
