@@ -37,7 +37,9 @@ const login = async (req, res) => {
     const accessToken = jwt.sign(
       {
         UserInfo: {
+          _id: user._id,
           username: user.username,
+          email: user.email,
           roles: user.roles,
         },
       },
@@ -46,7 +48,7 @@ const login = async (req, res) => {
     );
 
     const refreshToken = jwt.sign(
-      { username: user.username },
+      { _id: user._id },
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
@@ -60,7 +62,15 @@ const login = async (req, res) => {
     });
 
     // Send accessToken containing username and roles
-    res.status(200).json({ accessToken });
+    res.status(200).json({
+      accessToken,
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        roles: user.roles,
+      },
+    });
   } catch (error) {
     logEvents(`Login error: ${error.message}`, "authLog.log");
     res.status(500).json({ message: "Server error", error: error.message });
@@ -87,25 +97,32 @@ const refresh = (req, res) => {
           return res.status(403).json({ message: "Forbidden" });
         }
 
-        const foundUser = await User.findOne({
-          username: decoded.username,
-        });
+        const user = await User.findOne({ _id: decoded._id }).exec();
 
-        if (!foundUser)
-          return res.status(401).json({ message: "Unauthorized" });
+        if (!user) return res.status(401).json({ message: "Unauthorized" });
 
         const accessToken = jwt.sign(
           {
             UserInfo: {
-              username: foundUser.username,
-              roles: foundUser.roles,
+              _id: user._id,
+              username: user.username,
+              email: user.email,
+              roles: user.roles,
             },
           },
           process.env.ACCESS_TOKEN_SECRET,
           { expiresIn: "15m" }
         );
 
-        res.status(200).json({ accessToken });
+        res.status(200).json({
+          accessToken,
+          user: {
+            _id: user._id,
+            username: user.username,
+            email: user.email,
+            roles: user.roles,
+          },
+        });
       }
     );
   } catch (error) {
