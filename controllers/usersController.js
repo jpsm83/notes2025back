@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+const { logEvents } = require("../middleware/logger");
+
+const jwt = require("jsonwebtoken");
 
 // imported models
 const User = require("../models/User");
@@ -100,9 +103,44 @@ const createNewUser = async (req, res) => {
     const newUser = await User.create(userObj);
 
     if (newUser) {
-      return res
-        .status(201)
-        .json({ message: `New user ${newUser.username} created` });
+      const accessToken = jwt.sign(
+        {
+          UserInfo: {
+            _id: newUser._id,
+            username: newUser.username,
+            email: newUser.email,
+            roles: newUser.roles,
+          },
+        },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: "15m" }
+      );
+
+      const refreshToken = jwt.sign(
+        { _id: newUser._id },
+        process.env.REFRESH_TOKEN_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      // Create secure cookie with refresh token
+      res.cookie("jwt", refreshToken, {
+        httpOnly: true, //accessible only by web server
+        secure: true, //https
+        sameSite: "None", //cross-site cookie
+        maxAge: 7 * 24 * 60 * 60 * 1000, //cookie expiry: set to match refresh token (7 days in this case)
+      });
+
+      // Send accessToken containing username and roles
+      return res.status(201).json({
+        accessToken,
+        user: {
+          _id: newUser._id,
+          username: newUser.username,
+          email: newUser.email,
+          roles: newUser.roles,
+          image: newUser.image,
+        },
+      });
     } else {
       return res.status(400).json({ message: "Failed to create new user!" });
     }

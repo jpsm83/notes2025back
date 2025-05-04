@@ -8,18 +8,18 @@ const jwt = require("jsonwebtoken");
 // @route POST /auth
 // @access Public
 const login = async (req, res) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
 
-  if (!username || !password) {
+  if (!email || !password) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
-    const user = await User.findOne({ username }).lean();
+    const user = await User.findOne({ email }).lean();
 
     if (!user || !user.active) {
       logEvents(
-        `Unauthorized login attempt for username: ${username}`,
+        `Unauthorized login attempt for email: ${email}`,
         "authLog.log"
       );
       return res.status(401).json({ message: "Unauthorized, no user found!" });
@@ -62,13 +62,14 @@ const login = async (req, res) => {
     });
 
     // Send accessToken containing username and roles
-    res.status(200).json({
+    return res.status(200).json({
       accessToken,
       user: {
         _id: user._id,
         username: user.username,
         email: user.email,
         roles: user.roles,
+        image: user.image,
       },
     });
   } catch (error) {
@@ -114,13 +115,14 @@ const refresh = (req, res) => {
           { expiresIn: "15m" }
         );
 
-        res.status(200).json({
+        return res.status(200).json({
           accessToken,
           user: {
             _id: user._id,
             username: user.username,
             email: user.email,
             roles: user.roles,
+            image: user.image,
           },
         });
       }
@@ -138,7 +140,7 @@ const logout = (req, res) => {
   const cookies = req.cookies;
   if (!cookies?.jwt) return res.sendStatus(204); //No content
   res.clearCookie("jwt", { httpOnly: true, sameSite: "None", secure: true });
-  res.status(200).json({ message: "Logged out successfully" });
+  return res.status(200).json({ message: "Logged out successfully" });
 };
 
 module.exports = {
