@@ -17,14 +17,13 @@ const login = async (req, res) => {
   try {
     const user = await User.findOne({ email }).lean();
 
-    if (!user || !user.active) {
+    if (!user) {
       logEvents(
         `Unauthorized login attempt for email: ${email}`,
         "authLog.log"
       );
       return res.status(401).json({ message: "Unauthorized, no user found!" });
     }
-
     const match = await bcrypt.compare(password, user.password);
 
     if (!match) {
@@ -38,8 +37,6 @@ const login = async (req, res) => {
       {
         UserInfo: {
           _id: user._id,
-          username: user.username,
-          email: user.email,
           roles: user.roles,
         },
       },
@@ -70,6 +67,7 @@ const login = async (req, res) => {
         email: user.email,
         roles: user.roles,
         image: user.image,
+        active: user.active
       },
     });
   } catch (error) {
@@ -106,8 +104,6 @@ const refresh = (req, res) => {
           {
             UserInfo: {
               _id: user._id,
-              username: user.username,
-              email: user.email,
               roles: user.roles,
             },
           },
@@ -123,6 +119,7 @@ const refresh = (req, res) => {
             email: user.email,
             roles: user.roles,
             image: user.image,
+            active: user.active
           },
         });
       }

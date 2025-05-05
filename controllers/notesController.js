@@ -58,6 +58,30 @@ const getNoteById = async (req, res) => {
   }
 };
 
+// @desc Get a note by user ID
+// @route GET /user/:id
+// @access Private
+const getNoteByUserId = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const notes = await Note.find({ userId: id })
+      .lean();
+
+    if (!notes || notes.length === 0) {
+      return res.status(404).json({ message: "No notes found!" });
+    }
+
+    return res.status(200).json(notes);
+  } catch (error) {
+    console.error("Error fetching user notes!", error);
+    return res.status(500).json({
+      message: "An error occurred while fetching user notes!",
+      error: error.message,
+    });
+  }
+};
+
 // @desc Create new note
 // @route POST /notes
 // @access Private
@@ -82,7 +106,7 @@ const createNewNote = async (req, res) => {
       userId,
       title,
       description,
-      priority: priority || undefined,
+      priority,
     };
 
     const newNote = await Note.create(noteObj);
@@ -205,6 +229,7 @@ const deleteNote = async (req, res) => {
 module.exports = {
   getAllNotes,
   getNoteById,
+  getNoteByUserId,
   createNewNote,
   updateNote,
   deleteNote,

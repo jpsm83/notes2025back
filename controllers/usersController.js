@@ -160,6 +160,8 @@ const updateUser = async (req, res) => {
   const { id } = req.params; // Extract the ID from the URL
   const { username, password, email, roles, active } = req.body;
 
+  console.log(id, username, password, email, roles, active);
+  
   if (
     !id ||
     !username ||
