@@ -138,8 +138,7 @@ const updateNote = async (req, res) => {
     !dueDate ||
     !title ||
     !description ||
-    typeof priority !== "boolean" ||
-    typeof completed !== "boolean"
+    typeof priority !== "boolean"
   ) {
     return res.status(400).json({ message: "All fields are required!" });
   }
