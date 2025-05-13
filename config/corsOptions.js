@@ -13,7 +13,7 @@ const corsOptions = {
     }
 
     // In production, allow only requests with an origin in the allowedOrigins array
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
