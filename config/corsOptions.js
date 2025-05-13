@@ -6,14 +6,20 @@ const allowedOrigins = require("./allowedOrigins");
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // !origin allow postman or orders outsiders with no origin to access the server
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+    if (process.env.NODE_ENV === "development") {
+      // Allow all requests in development, including those without an origin
+      callback(null, true);
+      return;
+    }
+
+    // In production, allow only requests with an origin in the allowedOrigins array
+    if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
     }
   },
-  // credentials=true recive a cookie from the front (client) to know with user is in session
+  // Allow credentials (e.g., cookies) to be sent with requests
   credentials: true,
   optionsSuccessStatus: 200,
 };

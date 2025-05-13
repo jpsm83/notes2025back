@@ -1,7 +1,10 @@
 // all allowed origins for CORS requests
 const allowedOrigins = [
-    process.env.PUBLIC_DOMAIN_BACK, // backend domain
-    process.env.PUBLIC_DOMAIN_FRONT, // frontend domain
-]
+  "https://notes2025front-eft6ywww5-jpsm83s-projects.vercel.app",
+];
 
-module.exports = allowedOrigins
+if (process.env.NODE_ENV === "development") {
+  allowedOrigins.push("http://localhost:5173");
+}
+
+module.exports = allowedOrigins;
