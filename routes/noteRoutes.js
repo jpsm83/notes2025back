@@ -1,7 +1,8 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const notesController = require("../controllers/notesController");
-const verifyJWT = require("../middleware/verifyJWT");
+
+import { getAllNotes, createNewNote, getNoteById, updateNote, deleteNote, getNoteByUserId } from "../controllers/notesController.js";
+import verifyJWT from "../middleware/verifyJWT.js";
 
 // jwt middleware will execute before any other route handler
 // this way we can protect all routes in this file with the same middleware
@@ -9,15 +10,15 @@ router.use(verifyJWT);
 
 router
   .route("/")
-  .get(notesController.getAllNotes)
-  .post(notesController.createNewNote);
+  .get(getAllNotes)
+  .post(createNewNote);
 
 router
   .route("/:id")
-  .get(notesController.getNoteById)
-  .patch(notesController.updateNote)
-  .delete(notesController.deleteNote);
+  .get(getNoteById)
+  .patch(updateNote)
+  .delete(deleteNote);
 
-router.route("/user/:id").get(notesController.getNoteByUserId);
+router.route("/user/:id").get(getNoteByUserId);
 
-module.exports = router;
+export default router;

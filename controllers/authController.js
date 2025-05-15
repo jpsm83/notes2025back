@@ -1,13 +1,13 @@
-const User = require("../models/User");
-const bcrypt = require("bcrypt");
-const { logEvents } = require("../middleware/logger");
+import User from "../models/User.js";
+import bcrypt from "bcrypt";
+import { logEvents } from "../middleware/logger.js";
 
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
 // @desc Login
 // @route POST /auth
 // @access Public
-const login = async (req, res) => {
+export const login = async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -79,7 +79,7 @@ const login = async (req, res) => {
 // @desc Refresh
 // @route GET /auth/refresh
 // @access Public - because access token has expired
-const refresh = (req, res) => {
+export const refresh = (req, res) => {
   const cookies = req.cookies;
 
   if (!cookies?.jwt) return res.status(401).json({ message: "Unauthorized" });
@@ -133,15 +133,9 @@ const refresh = (req, res) => {
 // @desc Logout
 // @route POST /auth/logout
 // @access Public - just to clear cookie if exists
-const logout = (req, res) => {
+export const logout = (req, res) => {
   const cookies = req.cookies;
   if (!cookies?.jwt) return res.sendStatus(204); //No content
   res.clearCookie("jwt", { httpOnly: true, sameSite: "None", secure: true });
   return res.status(200).json({ message: "Logged out successfully" });
-};
-
-module.exports = {
-  login,
-  refresh,
-  logout,
 };

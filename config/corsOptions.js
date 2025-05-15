@@ -2,7 +2,7 @@
 // away from the same origin policy adopted by the browsers to restrict access
 // from one domain to resources belonging to another domain
 
-const allowedOrigins = require("./allowedOrigins");
+import allowedOrigins from "./allowedOrigins.js";
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -24,4 +24,4 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-module.exports = corsOptions;
+export default corsOptions;

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "notes app",
   "main": "server.ts",
+  "type": "module",
   "scripts": {
     "test": "jest",
     "dev": "nodemon server",

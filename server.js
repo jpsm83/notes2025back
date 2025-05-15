@@ -1,14 +1,23 @@
-require("dotenv").config();
-const express = require("express"); // express is a node framework that allows us to create web server envioraments
+import dotenv from "dotenv";
+dotenv.config();
+
+import express from "express"; // express is a node framework that allows us to create web server environments
 const app = express();
-const path = require("path"); // path module provides a way of working with directories and file paths
-const { logger, logEvents } = require("./middleware/logger");
-const errorHandler = require("./middleware/errorHandler");
-const cookieParser = require("cookie-parser"); // cookie-parser is a middleware which parses cookies attached to the client request object
-const cors = require("cors");
-const corsOptions = require("./config/corsOptions");
-const connectDB = require("./config/connectDB");
-const mongoose = require("mongoose");
+
+import path from "path"; // path module provides a way of working with directories and file paths
+import { fileURLToPath } from "url";
+import { logger, logEvents } from "./middleware/logger.js";
+import errorHandler from "./middleware/errorHandler.js";
+import cookieParser from "cookie-parser"; // cookie-parser is a middleware which parses cookies attached to the client request object
+import cors from "cors";
+import corsOptions from "./config/corsOptions.js";
+import connectDB from "./config/connectDB.js";
+import mongoose from "mongoose";
+
+// Calculate __dirname equivalent in ES module context
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const PORT = process.env.PORT || 3500; // if for some reason process.env.PORT is not available, run on 3500
 
 console.log(process.env.NODE_ENV);
@@ -33,13 +42,17 @@ app.use(cookieParser());
 app.use("/", express.static(path.join(__dirname, "public")));
 
 // 1 - route for html pages (404, index, etc.)
-app.use("/api/v1", require("./routes/root"));
+import rootRoutes from "./routes/root.js";
+app.use("/api/v1", rootRoutes);
 
-app.use("/api/v1/auth", require("./routes/authRoutes"));
+import authRoutes from "./routes/authRoutes.js";
+app.use("/api/v1/auth", authRoutes);
 
 // model routes
-app.use("/api/v1/users", require("./routes/userRoutes"));
-app.use("/api/v1/notes", require("./routes/noteRoutes"));
+import userRoutes from "./routes/userRoutes.js";
+import noteRoutes from "./routes/noteRoutes.js";
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/notes", noteRoutes);
 
 // Catch-all middleware for 404 errors
 app.use((req, res, next) => {
@@ -56,6 +69,7 @@ app.use((req, res, next) => {
 // Error handler middleware
 app.use(errorHandler);
 
+// Start the server after DB connection is ready
 mongoose.connection.once("open", () => {
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 });

@@ -8,4 +8,4 @@ if (process.env.NODE_ENV === "development") {
   allowedOrigins.push("http://localhost:5173");
 }
 
-module.exports = allowedOrigins;
+export default allowedOrigins;

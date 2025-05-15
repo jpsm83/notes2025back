@@ -1,6 +1,8 @@
 // mongoose is a mongodb library that help to create models easyer and faster
-const mongoose = require("mongoose");
-const AutoIncrement = require("mongoose-sequence")(mongoose);
+import mongoose from "mongoose";
+import mongooseSequence from "mongoose-sequence";
+
+const AutoIncrement = mongooseSequence(mongoose);
 
 const noteSchema = new mongoose.Schema(
   {
@@ -47,4 +49,4 @@ noteSchema.plugin(AutoIncrement, {
   start_seq: 500,
 });
 
-module.exports = mongoose.model("Note", noteSchema);
+export default mongoose.model("Note", noteSchema);

@@ -1,12 +1,11 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-const { logEvents } = require("../middleware/logger");
+import mongoose from "mongoose";
+import bcrypt from "bcrypt";
 
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
 // imported models
-const User = require("../models/User");
-const Note = require("../models/Note");
+import User from "../models/User.js";
+import Note from "../models/Note.js";
 
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
@@ -16,7 +15,7 @@ const emailRegex =
 // @desc Get all users
 // @route GET /users
 // @access Private
-const getAllUsers = async (req, res) => {
+export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password").lean();
     if (!users || users.length === 0) {
@@ -35,7 +34,7 @@ const getAllUsers = async (req, res) => {
 // @desc Get a user by ID
 // @route GET /users/:id
 // @access Private
-const getUserById = async (req, res) => {
+export const getUserById = async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -56,7 +55,7 @@ const getUserById = async (req, res) => {
 // @desc Create new user
 // @route POST /users
 // @access Private
-const createNewUser = async (req, res) => {
+export const createNewUser = async (req, res) => {
   const { username, password, email, roles } = req.body;
 
   if (!username || !password || !email) {
@@ -156,12 +155,12 @@ const createNewUser = async (req, res) => {
 // @desc Update a user
 // @route PATCH /users
 // @access Private
-const updateUser = async (req, res) => {
+export const updateUser = async (req, res) => {
   const { id } = req.params; // Extract the ID from the URL
   const { username, password, email, roles, active } = req.body;
 
   console.log(id, username, password, email, roles, active);
-  
+
   if (
     !id ||
     !username ||
@@ -247,7 +246,7 @@ const updateUser = async (req, res) => {
 // @desc Delete a user
 // @route DELETE /users
 // @access Private
-const deleteUser = async (req, res) => {
+export const deleteUser = async (req, res) => {
   const { id } = req.params; // Extract the ID from the URL
 
   if (!id) {
@@ -298,12 +297,4 @@ const deleteUser = async (req, res) => {
     // Ensure the session is ended regardless of the result
     session.endSession();
   }
-};
-
-module.exports = {
-  getAllUsers,
-  getUserById,
-  createNewUser,
-  updateUser,
-  deleteUser,
 };

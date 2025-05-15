@@ -1,5 +1,5 @@
 // mongoose is a mongodb library that help create models easyer and faster
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const connectDB = async () => {
   try {
@@ -11,4 +11,4 @@ const connectDB = async () => {
   }
 };
 
-module.exports = connectDB;
+export default connectDB;

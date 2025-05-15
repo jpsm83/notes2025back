@@ -1,4 +1,4 @@
-const { logEvents } = require('./logger')
+import { logEvents } from './logger.js';
 
 const errorHandler = (err, req, res, next) => {
     logEvents(`${err.name}: ${err.message}\t${req.method}\t${req.url}\t${req.headers.origin}`, 'errLog.log')
@@ -11,4 +11,4 @@ const errorHandler = (err, req, res, next) => {
     res.json({ message: err.message, isError: true })
 }
 
-module.exports = errorHandler 
+export default errorHandler 

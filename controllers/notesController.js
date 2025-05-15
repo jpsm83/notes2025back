@@ -1,11 +1,11 @@
 // imported models
-const Note = require("../models/Note");
-const User = require("../models/User");
+import Note from "../models/Note.js";
+import User from "../models/User.js";
 
 // @desc Get all notes
 // @route GET /notes
 // @access Private
-const getAllNotes = async (req, res) => {
+export const getAllNotes = async (req, res) => {
   try {
     const notes = await Note.find()
       .populate({
@@ -32,7 +32,7 @@ const getAllNotes = async (req, res) => {
 // @desc Get a note by ID
 // @route GET /notes/:id
 // @access Private
-const getNoteById = async (req, res) => {
+export const getNoteById = async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -61,12 +61,11 @@ const getNoteById = async (req, res) => {
 // @desc Get a note by user ID
 // @route GET /user/:id
 // @access Private
-const getNoteByUserId = async (req, res) => {
+export const getNoteByUserId = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const notes = await Note.find({ userId: id })
-      .lean();
+    const notes = await Note.find({ userId: id }).lean();
 
     if (!notes || notes.length === 0) {
       return res.status(404).json({ message: "No notes found!" });
@@ -85,7 +84,7 @@ const getNoteByUserId = async (req, res) => {
 // @desc Create new note
 // @route POST /notes
 // @access Private
-const createNewNote = async (req, res) => {
+export const createNewNote = async (req, res) => {
   const { dueDate, title, description, priority, userId } = req.body;
 
   if (!dueDate || !userId || !title || !description) {
@@ -128,7 +127,7 @@ const createNewNote = async (req, res) => {
 // @desc Update a note
 // @route PATCH /notes
 // @access Private
-const updateNote = async (req, res) => {
+export const updateNote = async (req, res) => {
   const { id } = req.params;
 
   const { dueDate, title, description, priority, completed } = req.body;
@@ -197,7 +196,7 @@ const updateNote = async (req, res) => {
 // @desc Delete a note
 // @route DELETE /notes
 // @access Private
-const deleteNote = async (req, res) => {
+export const deleteNote = async (req, res) => {
   const { id } = req.params;
 
   if (!id) {
@@ -223,13 +222,4 @@ const deleteNote = async (req, res) => {
       error: error.message,
     });
   }
-};
-
-module.exports = {
-  getAllNotes,
-  getNoteById,
-  getNoteByUserId,
-  createNewNote,
-  updateNote,
-  deleteNote,
 };
