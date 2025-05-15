@@ -66,7 +66,7 @@ app.use((req, res, next) => {
   }
 });
 
-// Error handler middleware
+// Error handler middleware is the last middleware to be used so it can catch errors from all previous middleware and routes
 app.use(errorHandler);
 
 // Start the server after DB connection is ready
