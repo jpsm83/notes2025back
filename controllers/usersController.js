@@ -190,7 +190,7 @@ export const updateUser = async (req, res) => {
   try {
     const [user, duplicateUser] = await Promise.all([
       User.findById(id).lean(),
-      User.exists({ username, _id: { $ne: id } }),
+      User.exists({ $or: [{ username }, { email }], _id: { $ne: id } }),
     ]);
 
     if (!user || duplicateUser) {
