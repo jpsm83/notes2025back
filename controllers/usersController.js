@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import redis from "../config/redisClients.js";
 import bcrypt from "bcrypt";
 
 import jwt from "jsonwebtoken";
@@ -11,6 +12,29 @@ const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 const emailRegex =
   /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
+
+// EXAMPLE CACHIN DATA
+export const getAllUsersCached = async (req, res) => {
+  try {
+    const cached = await redis.get('cachedUsers');
+    if (cached) return res.json(JSON.parse(cached));
+
+    const users = await User.find().select("-password").lean();
+    if (!users || users.length === 0) {
+      return res.status(404).json({ message: "No users found!" });
+    }
+
+    await redis.set('cachedUsers', JSON.stringify(users), 'EX', 3600); // 1h expiry
+
+    return res.status(200).json(users);
+  } catch (error) {
+    console.error("Error fetching users!", error);
+    return res.status(500).json({
+      message: "An error occurred while fetching users!",
+      error: error.message,
+    });
+  }
+};
 
 // @desc Get all users
 // @route GET /users
