@@ -139,3 +139,31 @@ export const logout = (req, res) => {
   res.clearCookie("jwt", { httpOnly: true, sameSite: "None", secure: true });
   return res.status(200).json({ message: "Logged out successfully" });
 };
+
+// @desc Get current user profile
+// @route GET /auth/me
+// @access Private - requires valid access token
+export const getMe = async (req, res) => {
+  try {
+    // The user info is already attached to req by verifyJWT middleware
+    const user = await User.findById(req.userId).select('-password').lean();
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        roles: user.roles,
+        image: user.image,
+        active: user.active
+      }
+    });
+  } catch (error) {
+    logEvents(`Get me error: ${error.message}`, "authLog.log");
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
